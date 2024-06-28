@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>작심한달 카메라 BETA</title>
+  <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+
+  <div id="motivation">
+    🔥작심한달 카메라📷 (BETA)🔥
+  </div>
+
+  <div id="challenge-time-input">
+    <div>
+      목표시간을 입력해주세요! <input type="number" id="input-minutes" min="1" />분
+    </div>
+    <div>
+      <button id="start-button">시작</button>
+      <button id="camera-toggle-button" class="material-button">카메라 전환</button>
+    </div>
+  </div>
+  <div id="video-container">
+    <video id="videoElement" autoplay muted playsinline></video>
+  </div>
+
+  <div id="blur-controller">
+    <input type="checkbox" id="toggle" hidden checked>  
+
+    <label for="blur-range">블러설정</label>
+    <label for="toggle" class="toggleSwitch">
+      <span class="toggleButton"></span>
+    </label>
+        
+ </div>
+  <div id="stopwatch-area">
+    00:00:00
+  </div>
+  <div id="progress-bar">
+    <div id="progress-bar-inner">0%</div>
+  </div>
+  <div>
+      <button id="complete-button" class="material-button" >끝내기</button>
+  </div>
+  <div id="capturedImages"></div>
+  <img id="gifPreview">
+
+    <div>
+      <button id="share-button" class="material-button" >공유하기</button>
+  </div>
+  <div id="errorText"></div>
+  <script src="https://cdn.jsdelivr.net/npm/gif.js/dist/gif.js"></script>
+  <script src="script.js"></script>
+  <script src="force-landing.js"></script>
+  <script src="stackblur.js"></script>
+
+</body>
+</html>

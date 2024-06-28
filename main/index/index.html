@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>카메라 영상 미리보기, 이미지 캡처 및 GIF 생성</title>
+    <style>
+        #videoElement {
+            width: 400px;
+            height: 300px;
+            background-color: #000;
+        }
+        #capturedImages {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .capturedImage {
+            width: 100px;
+            height: 100px;
+            margin: 5px;
+            border: 1px solid #000;
+        }
+        #gifPreview {
+            width: 400px;
+            height: 300px;
+            margin-top: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>카메라 영상 미리보기, 이미지 캡처 및 GIF 생성</h1>
+    <video id="videoElement" autoplay></video>
+    <button id="startButton">시작</button>
+    <div id="capturedImages"></div>
+    <img id="gifPreview">
+
+    <script src="https://cdn.jsdelivr.net/npm/gif.js/dist/gif.js"></script>
+    <script>
+        // 비디오 요소와 버튼 요소 가져오기
+        const video = document.getElementById("videoElement");
+        const startButton = document.getElementById("startButton");
+        const capturedImagesDiv = document.getElementById("capturedImages");
+        const gifPreview = document.getElementById("gifPreview");
+
+        // 이미지 캡처할 배열
+        let capturedImages = [];
+
+        // 미디어 장치 사용 권한 요청 및 처리
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function(stream) {
+                video.srcObject = stream;
+            })
+            .catch(function(error) {
+                console.log("카메라에 접근할 수 없습니다: " + error);
+            });
+
+        // 시작 버튼 클릭 시 이미지 캡처
+        startButton.addEventListener("click", function() {
+            capturedImages = []; // 이미지 배열 초기화
+            capturedImagesDiv.innerHTML = ""; // 이미지 목록 초기화
+
+            const captureInterval = setInterval(function() {
+                captureImage();
+
+                if (capturedImages.length >= 10) {
+                    clearInterval(captureInterval);
+                    createGif();
+                }
+            }, 1000); // 1초마다 이미지 캡처
+        });
+
+        // 이미지 캡처 및 저장
+        function captureImage() {
+            // Canvas 요소 생성 및 크기 설정
+            const canvas = document.createElement("canvas");
+            canvas.width = 100;
+            canvas.height = 100;
+
+            // Canvas에 현재 비디오 화면 그리기
+            const context = canvas.getContext("2d");
+            context.drawImage(video, 0, 0, 100, 100);
+
+            // 이미지를 Blob 형식으로 변환
+            canvas.toBlob(function(blob) {
+                // 이미지를 HTML에 추가
+                const capturedImageDiv = document.createElement("div");
+                capturedImageDiv.classList.add("capturedImage");
+                const image = new Image();
+                image.src = URL.createObjectURL(blob);
+                capturedImageDiv.appendChild(image);
+                capturedImagesDiv.appendChild(capturedImageDiv);
+
+                // Blob 형식의 이미지를 배열에 추가
+                capturedImages.push(blob);
+            });
+        }
+
+        // GIF 생성
+        function createGif() {
+            const gif = new GIF({
+                workers: 2,
+                quality: 10,
+                width: 400,
+                height: 300
+            });
+
+            capturedImages.forEach(function(blob) {
+                const img = new Image();
+                img.onload = function() {
+                    gif.addFrame(this, { delay: 300 }); // this는 로드된 이미지 객체를 가리킵니다.
+                    if (capturedImages.indexOf(blob) === capturedImages.length - 1) {
+                        gif.on('finished', function(blob) {
+                            gifPreview.src = URL.createObjectURL(blob);
+                            gifPreview.style.display = "block";
+                        });
+                        gif.render();
+                    }
+                };
+                img.src = URL.createObjectURL(blob);
+            });
+        }
+    </script>
+</body>
+</html>
