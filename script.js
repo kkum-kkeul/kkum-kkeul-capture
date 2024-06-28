@@ -37,6 +37,7 @@ document.addEventListener("DOMContentLoaded", function () {
     globalMinutes: 0,
     globalPercentage: 0,
     globalStartTime: null,
+    isNoTimeLimit: false,
   };
 
   setViewportHeight();
@@ -62,15 +63,25 @@ document.addEventListener("DOMContentLoaded", function () {
     elements.shareButton.addEventListener("click", onShareButtonClick);
     elements.cameraToggleButton.addEventListener("click", onCameraToggleClick);
     document.querySelectorAll(".toggleSwitch").forEach(toggle => toggle.addEventListener("click", onBlurToggleClick));
+
+    const radioButtons = document.querySelectorAll('.radio-button');
+    radioButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        radioButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+      });
+    });
   }
 
   function onStartButtonClick() {
-    const inputMinutes = document.getElementById("input-minutes").value;
-    if (inputMinutes) {
+    const selectedButton = document.querySelector('.radio-button.active');
+    if (selectedButton) {
+      const inputMinutes = parseFloat(selectedButton.getAttribute('data-value'));
+      state.isNoTimeLimit = inputMinutes === 0;
       resetUIForChallenge();
       startCountingAndCapture(inputMinutes);
     } else {
-      showInfoMessage("도전 시간을 입력해주세요!");
+      showInfoMessage("도전 시간을 선택해주세요!");
     }
   }
 
@@ -103,13 +114,29 @@ document.addEventListener("DOMContentLoaded", function () {
     elements.completeButton.style.display = "none";
     elements.challengeTimeInput.style.display = "none";
     elements.stopwatchArea.style.display = "block";
-    elements.progressBarInner.style.display = "flex";
-    elements.progressBar.style.display = "block";
+    elements.progressBarInner.style.display = state.isNoTimeLimit ? "none" : "flex";
+    elements.progressBar.style.display = state.isNoTimeLimit ? "none" : "block";
     elements.completeButton.style.display = "block";
+    elements.completeButton.disabled = false;
     hideBlurController();
   }
 
+
   function startCountingAndCapture(minutes) {
+    if (minutes == 0) {
+      startCapturingWithoutTimeLimit();
+    } else {
+      startCapturingWithTimeLimit(minutes);
+    }
+  }
+
+  function startCapturingWithoutTimeLimit() {
+    state.globalStartTime = Date.now();
+    state.stopWatchIntervalId = setInterval(updateStopWatch, 500);
+    state.captureIntervalId = setInterval(captureImage, 10);
+  }
+
+  function startCapturingWithTimeLimit(minutes) {
     const totalSeconds = minutes * 60;
     state.globalMinutes = minutes;
     state.globalStartTime = Date.now();
@@ -194,7 +221,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const watermarkTextTop = "🔥작심한달🔥";
     const watermarkTextMiddle = `${currentTime}`;
     const watermarkTextBottom = `[ ⏱️ ${state.globalStopWatch} ]`;
-    const watermarkProgress = `목표시간 : ${state.globalMinutes}분 (${Math.floor(state.globalPercentage)}%)`;
+    const watermarkProgress = state.isNoTimeLimit ? "목표시간 : 없음" : `목표시간 : ${state.globalMinutes}분 (${Math.floor(state.globalPercentage)}%)`;
 
     context.font = "25px Arial";
     context.textAlign = "center";
@@ -213,7 +240,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function createGif() {
-    showInfoMessage("gif 파일을 만드는 중 입니다.");
+    showInfoMessage("gif 파일로 변환 중이에요 :)");
     const gif = new GIF({
       workers: 2,
       quality: 10,
@@ -248,7 +275,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const numImages = state.capturedImages.length;
     const step = Math.max(1, Math.floor(numImages / constants.maxGifImages));
     const imagesToUse = state.capturedImages.filter((_, index) => index % step === 0);
-    imagesToUse.push(state.capturedImages[state.capturedImages.length - 1]);
+    const lastImage = state.capturedImages[state.capturedImages.length - 1];
+    imagesToUse.push(lastImage);
+    imagesToUse.unshift(lastImage);
     return imagesToUse;
   }
 
