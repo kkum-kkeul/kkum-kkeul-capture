@@ -21,6 +21,7 @@ document.addEventListener("DOMContentLoaded", function () {
     canvasHeight: 300,
     maxGifImages: 100,
     totalGifDuration: 5000,
+    captureInterval: 300,
   };
 
   const state = {
@@ -141,7 +142,7 @@ document.addEventListener("DOMContentLoaded", function () {
   function startCapturingWithoutTimeLimit() {
     state.globalStartTime = Date.now();
     state.stopWatchIntervalId = setInterval(updateStopWatch, 500);
-    state.captureIntervalId = setInterval(captureImage, 10);
+    state.captureIntervalId = setInterval(captureImage, constants.captureInterval);
   }
 
   function startCapturingWithTimeLimit(minutes) {
@@ -153,7 +154,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     state.stopWatchIntervalId = setInterval(updateStopWatch, 500);
     state.progressBarIntervalId = setInterval(() => updateProgressBar(Date.now() - state.globalStartTime, totalSeconds), 100);
-    state.captureIntervalId = setInterval(captureImage, 10);
+    state.captureIntervalId = setInterval(captureImage, constants.captureInterval);
   }
 
   function updateStopWatch() {
