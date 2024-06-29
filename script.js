@@ -393,10 +393,39 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function getMediaStream() {
     const constraints = { video: { facingMode: state.isFacingFront ? "user" : "environment" } };
+  
     return navigator.mediaDevices.getUserMedia(constraints)
-      .catch(() => Promise.reject(new Error("미디어 스트림을 가져올 수 없습니다.")));
+      .then((stream) => {
+        return stream;
+      })
+      .catch((error) => {
+        console.error("Error accessing media devices.", error);
+        return handleLegacyMediaDevices(constraints);
+      });
   }
-
+  
+  function handleLegacyMediaDevices(constraints) {
+    if (navigator.getUserMedia) {
+      return new Promise((resolve, reject) => {
+        navigator.getUserMedia(constraints, resolve, reject);
+      });
+    } else if (navigator.webkitGetUserMedia) {
+      return new Promise((resolve, reject) => {
+        navigator.webkitGetUserMedia(constraints, resolve, reject);
+      });
+    } else if (navigator.mozGetUserMedia) {
+      return new Promise((resolve, reject) => {
+        navigator.mozGetUserMedia(constraints, resolve, reject);
+      });
+    } else if (navigator.msGetUserMedia) {
+      return new Promise((resolve, reject) => {
+        navigator.msGetUserMedia(constraints, resolve, reject);
+      });
+    } else {
+      return Promise.reject(new Error("미디어 스트림을 가져올 수 없습니다."));
+    }
+  }
+  
   function formatTime(hours, minutes, seconds) {
     return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   }
