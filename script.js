@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", function () {
     blurValue: 'blur(10px)',
     canvasWidth: 400,
     canvasHeight: 300,
-    maxGifImages: 100,
+    maxGifImages: 80,
     totalGifDuration: 5000,
     captureInterval: 300,
   };
@@ -425,7 +425,7 @@ document.addEventListener("DOMContentLoaded", function () {
       return Promise.reject(new Error("미디어 스트림을 가져올 수 없습니다."));
     }
   }
-  
+
   function formatTime(hours, minutes, seconds) {
     return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   }
