@@ -86,6 +86,10 @@ document.addEventListener("DOMContentLoaded", function () {
     } else {
       showInfoMessage("도전 시간을 선택해주세요!");
     }
+
+    // 활성화를 위한 임시설정
+    celebrationAudio.play();
+    celebrationAudio.pause();
   }
 
   function onShareButtonClick() {
