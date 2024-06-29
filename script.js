@@ -184,12 +184,20 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function playCelebrationSoundOrVibrate() {
     celebrationAudio.play().catch(() => {
-      if (navigator.vibrate) {
-        navigator.vibrate(2000);
-      } else {
-        console.warn("이 기기는 진동을 지원하지 않습니다.");
-      }
+      triggerVibration();
     });
+  
+    if (celebrationAudio.volume === 0) {
+      triggerVibration();
+    }
+  }
+
+  function triggerVibration() {
+    if (navigator.vibrate) {
+      navigator.vibrate(2000); // 2초 동안 진동
+    } else {
+      console.warn("이 기기는 진동을 지원하지 않습니다.");
+    }
   }
 
   function initializeCompleteButton() {
