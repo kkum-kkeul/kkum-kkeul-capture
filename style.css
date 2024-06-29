@@ -218,3 +218,31 @@ label[for="blur-range"] {
 .toggleSwitch, .toggleButton {
   transition: all 0.2s ease-in;
 }
+
+.radio-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.radio-button {
+  background-color: #f1f1f1;
+  border: none;
+  border-radius: 5px;
+  padding: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  color: black; /* 기본 텍스트 색상 추가 */
+}
+
+.radio-button.active {
+  background-color: #4caf50;
+  color: white;
+}
+
+.radio-button.disabled {
+  background-color: #e0e0e0; /* 비활성화 시 배경색상 추가 */
+  color: #9e9e9e; /* 비활성화 시 텍스트 색상 추가 */
+  cursor: not-allowed;
+}
