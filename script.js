@@ -38,7 +38,10 @@ document.addEventListener("DOMContentLoaded", function () {
     globalPercentage: 0,
     globalStartTime: null,
     isNoTimeLimit: false,
+    hasPlayedCelebrationSound: false,
   };
+
+  const celebrationAudio = new Audio('celebration.mp3');
 
   setViewportHeight();
   window.addEventListener('resize', setViewportHeight);
@@ -118,6 +121,7 @@ document.addEventListener("DOMContentLoaded", function () {
     elements.progressBar.style.display = state.isNoTimeLimit ? "none" : "block";
     elements.completeButton.style.display = "block";
     elements.completeButton.disabled = false;
+    state.hasPlayedCelebrationSound = false;
     hideBlurController();
   }
 
@@ -166,7 +170,22 @@ document.addEventListener("DOMContentLoaded", function () {
     elements.progressBarInner.textContent = `${state.globalMinutes}분(${Math.floor(progressPercentage)}%)`;
     elements.progressBarInner.style.width = `${Math.min(progressPercentage, 100)}%`;
 
+    if (Math.floor(progressPercentage) >= 100 && !state.hasPlayedCelebrationSound) {
+      playCelebrationSoundOrVibrate();
+      state.hasPlayedCelebrationSound = true;
+    }
+  
     elements.completeButton.disabled = false;
+  }
+
+  function playCelebrationSoundOrVibrate() {
+    celebrationAudio.play().catch(() => {
+      if (navigator.vibrate) {
+        navigator.vibrate(2000);
+      } else {
+        console.warn("이 기기는 진동을 지원하지 않습니다.");
+      }
+    });
   }
 
   function initializeCompleteButton() {
