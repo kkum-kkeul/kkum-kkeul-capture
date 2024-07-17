@@ -1,13 +1,14 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
+    <meta charset="UTF-8">
   <title>작심한달 카메라 BETA</title>
-  <link rel="stylesheet" type="text/css" href="style.css?v=1.06">
+  <link rel="stylesheet" type="text/css" href="style.css?v=1.07">
 </head>
 <body>
-  <script src="script.js?v1.06"></script>
+  <script src="script.js?v1.07"></script>
   <div id="motivation">
-    🔥작심한달 카메라📷 (BETA) v1.06🔥
+    🔥작심한달 카메라📷 (BETA) v1.07🔥
   </div>
 
   <div id="challenge-time-input">
@@ -35,9 +36,18 @@
   </div>
 
   <div id="blur-controller">
-    <input type="checkbox" id="toggle" hidden checked>  
+    <input type="checkbox" id="toggle-blur" hidden checked>  
     <label for="blur-range">블러설정</label>
-    <label for="toggle" class="toggleSwitch">
+    <label for="toggle-blur" class="toggleSwitch">
+      <span class="toggleButton"></span>
+    </label>
+  </div>
+
+
+  <div id="sound-controller">
+    <input type="checkbox" id="toggle-sound" hidden checked>  
+    <label for="sound-range">박수 소리</label>
+    <label for="toggle-sound" class="toggleSwitch">
       <span class="toggleButton"></span>
     </label>
   </div>
