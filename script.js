@@ -19,13 +19,14 @@ document.addEventListener("DOMContentLoaded", function () {
     blurValue: 'blur(10px)',
     canvasWidth: 400,
     canvasHeight: 300,
-    maxGifImages: 80,
+    maxGifImages: 100,
     totalGifDuration: 5000,
-    captureInterval: 300,
+    captureInterval: 10,
   };
 
   const state = {
     isBlurOn: true,
+    isSoundOn: true,
     capturedImages: [],
     isFacingFront: false,
     stopWatchIntervalId: null,
@@ -40,6 +41,7 @@ document.addEventListener("DOMContentLoaded", function () {
     globalStartTime: null,
     isNoTimeLimit: false,
     hasPlayedCelebrationSound: false,
+    captureFrameNumber: 0, // 프레임 번호 초기화
   };
 
   const celebrationAudio = new Audio('celebration.mp3');
@@ -66,7 +68,9 @@ document.addEventListener("DOMContentLoaded", function () {
     elements.startButton.addEventListener("click", onStartButtonClick);
     elements.shareButton.addEventListener("click", onShareButtonClick);
     elements.cameraToggleButton.addEventListener("click", onCameraToggleClick);
-    document.querySelectorAll(".toggleSwitch").forEach(toggle => toggle.addEventListener("click", onBlurToggleClick));
+    // document.querySelectorAll(".toggleSwitch").forEach(toggle => toggle.addEventListener("click", onBlurToggleClick));
+    document.getElementById('toggle-sound').addEventListener('change', onSoundToggleClick); // 추가된 이벤트 리스너
+    document.getElementById('toggle-blur').addEventListener('change', onBlurToggleClick); // 추가된 이벤트 리스너
 
     const radioButtons = document.querySelectorAll('.radio-button');
     radioButtons.forEach(button => {
@@ -75,6 +79,10 @@ document.addEventListener("DOMContentLoaded", function () {
         button.classList.add('active');
       });
     });
+  }
+
+  function onSoundToggleClick() {
+    state.isSoundOn = !state.isSoundOn;
   }
 
   function onStartButtonClick() {
@@ -115,6 +123,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function resetUIForChallenge() {
     state.capturedImages = [];
+    state.captureFrameNumber = 0; // 프레임 번호 초기화
     elements.gifPreview.src = "";
     elements.gifPreview.style.display = "none";
     elements.capturedImagesDiv.innerHTML = "";
@@ -129,7 +138,6 @@ document.addEventListener("DOMContentLoaded", function () {
     state.hasPlayedCelebrationSound = false;
     hideBlurController();
   }
-
 
   function startCountingAndCapture(minutes) {
     if (minutes == 0) {
@@ -179,15 +187,19 @@ document.addEventListener("DOMContentLoaded", function () {
       playCelebrationSoundOrVibrate();
       state.hasPlayedCelebrationSound = true;
     }
-  
+
     elements.completeButton.disabled = false;
   }
 
   function playCelebrationSoundOrVibrate() {
+    if (!state.isSoundOn) {
+      return
+    }
+
     celebrationAudio.play().catch(() => {
       triggerVibration();
     });
-  
+
     if (celebrationAudio.volume === 0) {
       triggerVibration();
     }
@@ -227,10 +239,53 @@ document.addEventListener("DOMContentLoaded", function () {
     try {
       const imageDataURL = canvas.toDataURL("image/png");
       const blob = dataURLToBlob(imageDataURL);
-      state.capturedImages.push(blob);
+      state.capturedImages.push({ blob, frameNumber: state.captureFrameNumber });
+      state.captureFrameNumber++;
+
+      if (state.capturedImages.length >= constants.maxGifImages * 2) {
+        state.capturedImages = compressImages(state.capturedImages, constants.maxGifImages);
+      }
     } catch (error) {
       showInfoMessage("이미지 캡처 중 오류가 발생했습니다: " + error);
     }
+  }
+
+  function compressImages(images, maxImages) {
+    const numImages = images.length;
+    if (numImages <= maxImages) {
+      return images;
+    }
+  
+    const totalFrames = images[images.length - 1].frameNumber - images[0].frameNumber;
+    const step = totalFrames / (maxImages - 1);
+    const compressedImages = [images[0]]; // 첫 번째 이미지 추가
+    const frameNumbers = [images[0].frameNumber]; // 첫 번째 프레임 번호 추가
+  
+    let currentFrame = images[0].frameNumber + step;
+    for (let i = 1; i < maxImages - 1; i++) {
+      let closestImageIndex = 0;
+      let closestFrameDifference = Math.abs(images[0].frameNumber - currentFrame);
+  
+      for (let j = 1; j < images.length; j++) {
+        const frameDifference = Math.abs(images[j].frameNumber - currentFrame);
+        if (frameDifference < closestFrameDifference) {
+          closestFrameDifference = frameDifference;
+          closestImageIndex = j;
+        }
+      }
+  
+      compressedImages.push(images[closestImageIndex]);
+      frameNumbers.push(images[closestImageIndex].frameNumber);
+      currentFrame += step;
+    }
+  
+    const lastImage = images[images.length - 1];
+    compressedImages.push(lastImage); // 마지막 이미지 추가
+    frameNumbers.push(lastImage.frameNumber); // 마지막 프레임 번호 추가
+  
+    console.log("Selected frame numbers:", frameNumbers);
+  
+    return compressedImages;
   }
 
   function applyBlur(context, canvas) {
@@ -289,7 +344,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     const delay = Math.floor(constants.totalGifDuration / imagesToUse.length);
-    const imagePromises = imagesToUse.map(loadImageFromBlob);
+    const imagePromises = imagesToUse.map(item => loadImageFromBlob(item.blob));
 
     Promise.all(imagePromises)
       .then(images => {
@@ -304,13 +359,11 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function selectImagesForGif() {
-    const numImages = state.capturedImages.length;
-    const step = Math.max(1, Math.floor(numImages / constants.maxGifImages));
-    const imagesToUse = state.capturedImages.filter((_, index) => index % step === 0);
+    const imagesToUse = compressImages(state.capturedImages, constants.maxGifImages);
     const lastImage = state.capturedImages[state.capturedImages.length - 1];
     imagesToUse.push(lastImage);
     imagesToUse.unshift(lastImage);
-    return imagesToUse;
+    return imagesToUse
   }
 
   function loadImageFromBlob(blob) {
@@ -393,7 +446,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function getMediaStream() {
     const constraints = { video: { facingMode: state.isFacingFront ? "user" : "environment" } };
-  
+
     return navigator.mediaDevices.getUserMedia(constraints)
       .then((stream) => {
         return stream;
@@ -403,7 +456,7 @@ document.addEventListener("DOMContentLoaded", function () {
         return handleLegacyMediaDevices(constraints);
       });
   }
-  
+
   function handleLegacyMediaDevices(constraints) {
     if (navigator.getUserMedia) {
       return new Promise((resolve, reject) => {
