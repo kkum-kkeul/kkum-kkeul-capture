@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", function () {
     canvasHeight: 300,
     maxGifImages: 100,
     totalGifDuration: 5000,
-    captureInterval: 10,
+    captureInterval: 300,
   };
 
   const state = {
