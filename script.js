@@ -454,7 +454,11 @@ document.addEventListener("DOMContentLoaded", function () {
       .catch((error) => {
         console.error("Error accessing media devices.", error);
         return handleLegacyMediaDevices(constraints);
-      });
+      })
+      .catch(legacyError => {
+        console.error("Error with legacy media devices.", legacyError);
+        return enumerateDevicesAndRetry();
+    });
   }
 
   function handleLegacyMediaDevices(constraints) {
@@ -477,6 +481,33 @@ document.addEventListener("DOMContentLoaded", function () {
     } else {
       return Promise.reject(new Error("미디어 스트림을 가져올 수 없습니다."));
     }
+  }
+
+  function enumerateDevicesAndRetry() {
+    return navigator.mediaDevices.enumerateDevices()
+        .then(devices => {
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            const selectedDevice = videoDevices.find(device =>
+                state.isFacingFront ? device.label.toLowerCase().includes('front') : device.label.toLowerCase().includes('back')
+            ) || videoDevices[0]; // 기본적으로 첫 번째 비디오 장치를 선택
+
+            if (!selectedDevice) {
+                return Promise.reject(new Error("적절한 비디오 장치를 찾을 수 없습니다."));
+            }
+
+            const newConstraints = { video: { deviceId: { exact: selectedDevice.deviceId } } };
+            return navigator.mediaDevices.getUserMedia(newConstraints);
+        })
+        .then(stream => {
+            // 스트림이 성공적으로 얻어진 경우 상태 업데이트
+            state.isFacingFront = selectedDevice.label.toLowerCase().includes('front');
+            return stream;
+        })
+        .catch(error => {
+            console.error("Error accessing media devices with deviceId.", error);
+            showInfoMessage("deviceId로도 카메라에 접근할 수 없습니다: " + error);
+            return Promise.reject(error); // 최종 오류 반환
+        });
   }
 
   function formatTime(hours, minutes, seconds) {
