@@ -454,7 +454,11 @@ document.addEventListener("DOMContentLoaded", function () {
       .catch((error) => {
         console.error("Error accessing media devices.", error);
         return handleLegacyMediaDevices(constraints);
-      });
+      })
+      .catch(legacyError => {
+        console.error("Error with legacy media devices.", legacyError);
+        return enumerateDevicesAndRetry();
+    });
   }
 
   function handleLegacyMediaDevices(constraints) {
@@ -477,6 +481,63 @@ document.addEventListener("DOMContentLoaded", function () {
     } else {
       return Promise.reject(new Error("미디어 스트림을 가져올 수 없습니다."));
     }
+  }
+
+  function enumerateDevicesAndRetry() {
+    return navigator.mediaDevices.enumerateDevices()
+        .then(devices => {
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            console.log("Available video devices:", videoDevices);
+
+            if (videoDevices.length === 0) {
+                return Promise.reject(new Error("No video input devices found."));
+            }
+
+            let selectedDevice = null;
+
+            // Attempt to find a suitable camera by matching labels
+            selectedDevice = videoDevices.find(device =>
+                state.isFacingFront ? device.label.toLowerCase().includes('front') : device.label.toLowerCase().includes('back')
+            );
+
+            if (!selectedDevice) {
+                // Fall back to the first available device if specific front/back label is not found
+                selectedDevice = videoDevices[0];
+            }
+
+            console.log("Selected device:", selectedDevice);
+
+            // First attempt: Use deviceId directly
+            const firstAttemptConstraints = { video: { deviceId: { exact: selectedDevice.deviceId } } };
+            return navigator.mediaDevices.getUserMedia(firstAttemptConstraints);
+        })
+        .catch(error => {
+            console.error("First attempt failed with deviceId, retrying without deviceId.", error);
+
+            // Second attempt: Fallback without deviceId
+            const fallbackConstraints = { video: true };
+            return navigator.mediaDevices.getUserMedia(fallbackConstraints);
+        })
+        .catch(error => {
+            console.error("Second attempt failed without deviceId, retrying with basic constraints.", error);
+
+            // Third attempt: Basic video constraints (minimal configuration)
+            const basicConstraints = { video: {} };
+            return navigator.mediaDevices.getUserMedia(basicConstraints);
+        })
+        .then(stream => {
+            // If successful, determine which camera is in use
+            const activeDeviceId = stream.getVideoTracks()[0].getSettings().deviceId;
+            state.isFacingFront = videoDevices.some(device => 
+                device.deviceId === activeDeviceId && device.label.toLowerCase().includes('front')
+            );
+            return stream;
+        })
+        .catch(error => {
+            console.error("All attempts failed to access the camera.", error);
+            showInfoMessage("Unable to access the camera after multiple attempts: " + error.message);
+            return Promise.reject(error); // Final error after all retries
+        });
   }
 
   function formatTime(hours, minutes, seconds) {
