@@ -487,26 +487,56 @@ document.addEventListener("DOMContentLoaded", function () {
     return navigator.mediaDevices.enumerateDevices()
         .then(devices => {
             const videoDevices = devices.filter(device => device.kind === 'videoinput');
-            const selectedDevice = videoDevices.find(device =>
-                state.isFacingFront ? device.label.toLowerCase().includes('front') : device.label.toLowerCase().includes('back')
-            ) || videoDevices[0]; // 기본적으로 첫 번째 비디오 장치를 선택
+            console.log("Available video devices:", videoDevices);
 
-            if (!selectedDevice) {
-                return Promise.reject(new Error("적절한 비디오 장치를 찾을 수 없습니다."));
+            if (videoDevices.length === 0) {
+                return Promise.reject(new Error("No video input devices found."));
             }
 
-            const newConstraints = { video: { deviceId: { exact: selectedDevice.deviceId } } };
-            return navigator.mediaDevices.getUserMedia(newConstraints);
+            let selectedDevice = null;
+
+            // Attempt to find a suitable camera by matching labels
+            selectedDevice = videoDevices.find(device =>
+                state.isFacingFront ? device.label.toLowerCase().includes('front') : device.label.toLowerCase().includes('back')
+            );
+
+            if (!selectedDevice) {
+                // Fall back to the first available device if specific front/back label is not found
+                selectedDevice = videoDevices[0];
+            }
+
+            console.log("Selected device:", selectedDevice);
+
+            // First attempt: Use deviceId directly
+            const firstAttemptConstraints = { video: { deviceId: { exact: selectedDevice.deviceId } } };
+            return navigator.mediaDevices.getUserMedia(firstAttemptConstraints);
+        })
+        .catch(error => {
+            console.error("First attempt failed with deviceId, retrying without deviceId.", error);
+
+            // Second attempt: Fallback without deviceId
+            const fallbackConstraints = { video: true };
+            return navigator.mediaDevices.getUserMedia(fallbackConstraints);
+        })
+        .catch(error => {
+            console.error("Second attempt failed without deviceId, retrying with basic constraints.", error);
+
+            // Third attempt: Basic video constraints (minimal configuration)
+            const basicConstraints = { video: {} };
+            return navigator.mediaDevices.getUserMedia(basicConstraints);
         })
         .then(stream => {
-            // 스트림이 성공적으로 얻어진 경우 상태 업데이트
-            state.isFacingFront = selectedDevice.label.toLowerCase().includes('front');
+            // If successful, determine which camera is in use
+            const activeDeviceId = stream.getVideoTracks()[0].getSettings().deviceId;
+            state.isFacingFront = videoDevices.some(device => 
+                device.deviceId === activeDeviceId && device.label.toLowerCase().includes('front')
+            );
             return stream;
         })
         .catch(error => {
-            console.error("Error accessing media devices with deviceId.", error);
-            showInfoMessage("deviceId로도 카메라에 접근할 수 없습니다: " + error);
-            return Promise.reject(error); // 최종 오류 반환
+            console.error("All attempts failed to access the camera.", error);
+            showInfoMessage("Unable to access the camera after multiple attempts: " + error.message);
+            return Promise.reject(error); // Final error after all retries
         });
   }
 
